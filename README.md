@@ -45,7 +45,7 @@ This has been checked and was working on **May 7, 2018**, but I have no plans to
 
 First, download the repo
 
-    git clone https://github.com/kelmore5/ebay-keyword-crawler
+    git clone --recurse-submodules -j8 https://github.com/kelmore5/masonic-web-parser
     
 Once downloaded and dependencies are installed, you can run it via
 
@@ -63,8 +63,8 @@ Once downloaded and dependencies are installed, you can run it via
 
 ## Proof of Concept
 
-You can see a demo from a slideshow I've created [here](https://docs.google.com/presentation/d/1VlSL0dZrbhQeY3bIFUGEmSkFARycCc31zmQlNqx_7BY/edit?usp=sharing)
-or you can look at the sample output from [this](https://github.com/kelmore5/ebay-keyword-crawler/raw/master/demo/output_demo.xlsx) Excel sheet, screenshotted below.
+You can see a demo from a slideshow I've created [here](https://docs.google.com/presentation/d/17Cx1q3SoYaDH2dW3P5Y7aai8Q85VXepRMGrTtllWXRw/edit?usp=sharing)
+or you can look at the sample output from [this](https://github.com/kelmore5/masonic-web-parser/raw/master/demo/output_sample.xlsx) Excel sheet, screenshotted below.
 
 Either way here are some pictures to give a proof of concept.
 
@@ -94,5 +94,6 @@ The Organization database with columns filled in (as much as possible)
 
 * Note: Most of the organization pages do not have contact information
 
+Output everything to Excel:
 
-# TODO: Excel output
+![Excel Output](/demo/pictures/excel_output.png "Excel Output")

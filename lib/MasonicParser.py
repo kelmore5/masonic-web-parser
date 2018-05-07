@@ -126,9 +126,12 @@ class MasonicParser(object):
 
         # self.parse_region_pages()
 
-        self.parse_organization_pages()
+        # self.parse_organization_pages()
 
-        # self.convert_database_for_output(RegionalLinks)
+        header_convert: Callable[[str], str] = lambda x: x.replace('Org', 'Organization')
+        output: List[List[str]] = self.convert_database_for_output(Organizations, header_convert)
+
+        self.output_keywords_to_excel(output)
 
         self.browser.quit()
 
@@ -533,9 +536,13 @@ class MasonicParser(object):
 
     # TODO: Move to utils class
     @staticmethod
-    def convert_database_for_output(db: BaseModelT):
-        keys: List[str] = db._meta.get_sorted_fields()
-        rows: List[BaseModel] = db.select()
+    def convert_database_for_output(db: BaseModel, header_edit: Callable[[str], str] = None):
+        OG = Organizations
+
+        keys: List[str] = db._meta.sorted_field_names
+        # noinspection PyComparisonWithNone
+        rows: List[BaseModel] = db.select().where(OG.latitude != None).limit(500) \
+            .order_by(OG.national_org.asc(), OG.regional_org.asc(), OG.name.asc(), OG.number.asc())
 
         remove_keys = ['created_at', 'id']
         for key in remove_keys:
@@ -545,50 +552,30 @@ class MasonicParser(object):
         new_keys: List[str] = [convert_header(x) for x in keys]
         new_rows: List[dict] = [x.to_dict() for x in rows]
 
+        if header_edit is not None:
+            new_keys = [header_edit(x) for x in new_keys]
+
         output: List[List[str]] = [new_keys, []]
         for row in new_rows:
             new_row: List[str] = []
 
             for key in keys:
                 if key in row:
-                    new_row.append(row[key])
+                    new_row.append(str(row[key]))
                 else:
                     new_row.append('')
+
+            output.append(new_row)
 
         return output
 
     @staticmethod
-    def output_keywords_to_excel():
+    def output_keywords_to_excel(output: List[List[str]], file_name='output.xlsx'):
         # TODO: Format excel spreadsheet output
-        sheet_rows = []
-        # headers = ["Title", "Page Link", "Keyword Group", "Keywords Found in Title", "Keywords Found in Messages",
-        #            "Post Creation Date", "Post Last Response Date"]
-        #
-        # output: List[Union[Keywords, Posts]] = Keywords.select(Keywords.title, Keywords.link, Keywords.group,
-        #                                                        Keywords.keywords_in_title, Keywords.keywords_in_message,
-        #                                                        Posts.creation_date.alias("creation_date"),
-        #                                                        Posts.last_post_date) \
-        #     .join(Posts, JOIN.LEFT_OUTER, on=(Posts.link == Keywords.link)).order_by(Keywords.group.desc())
-        #
-        # rem_brackets = lambda x: x.replace('[', '').replace(']', '').replace('\'', '')
-        #
-        # sheet_rows.append(headers)
-        # sheet_rows.append([""] * 7)
-        # for keyword in output:
-        #     # noinspection PyUnresolvedReferences
-        #     new_row = [keyword.title.title, keyword.link.link, keyword.group, rem_brackets(keyword.keywords_in_title),
-        #                rem_brackets(keyword.keywords_in_message), keyword.posts.creation_date,
-        #                keyword.posts.last_post_date]
-        #     sheet_rows.append(new_row)
-        #
-        # sheet_rows += [[]] + [["Total Keywords"]] + [[]]
-        # sheet_rows += [["Positive Keywords:"]] + [[]] + keyword_rows[0] + [[]]
-        # sheet_rows += [["Negative Keywords:"]] + [[]] + keyword_rows[1]
-        #
-        # output_path = os.path.dirname(os.path.realpath(__file__))
-        # output_path = os.path.abspath(os.path.join(output_path, '../output/output.xlsx'))
-        #
-        # sheets.create_master_sheet(output_path, sheet_rows)
+        output_path = os.path.dirname(os.path.realpath(__file__))
+        output_path = os.path.abspath(os.path.join(output_path, '../output/' + file_name))
+
+        sheets.create_master_sheet(output_path, output)
 
 
 # TODO: Catch KeyboardInterrupt and close browser - super big memory leaks if opened/exited a lot
