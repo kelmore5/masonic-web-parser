@@ -1,8 +1,7 @@
-import ast
 import os.path
 import sys
 import time
-from typing import List, Set, Union, Dict, Callable, TypeVar
+from typing import List, Set, Dict, Callable, TypeVar
 
 # noinspection PyUnresolvedReferences
 from MasonHTMLElements import MasonHTMLElements
@@ -11,17 +10,15 @@ from SeleniumBrowser.lib.SeleniumBrowser import SeleniumBrowser
 # noinspection PyUnresolvedReferences
 from SeleniumBrowser.lib.XPathLookupProps import XPathLookupProps
 # noinspection PyUnresolvedReferences
-# from database.models.Keywords import Keywords, KeywordsKeys
-# noinspection PyUnresolvedReferences
-from database.models.RegionalLinks import RegionalLinks, RegionalLinksKeys
-# noinspection PyUnresolvedReferences
 from database.models.BaseModel import BaseModel
 # noinspection PyUnresolvedReferences
 from database.models.Organizations import Organizations, OrganizationsKeys
-
+# noinspection PyUnresolvedReferences
+# from database.models.Keywords import Keywords, KeywordsKeys
+# noinspection PyUnresolvedReferences
+from database.models.RegionalLinks import RegionalLinks, RegionalLinksKeys
 from peewee import *
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -36,18 +33,16 @@ dir_path = os.path.abspath(os.path.join(dir_path, '..'))
 
 sys.path.append(dir_path)
 
-from lib.MasonHTMLElements import MasonHTMLElements
-from lib.SeleniumBrowser.lib.SeleniumBrowser import SeleniumBrowser
-from lib.SeleniumBrowser.lib.XPathLookupProps import XPathLookupProps
-from lib.database.models.BaseModel import BaseModel
-from lib.database.models.RegionalLinks import RegionalLinks
-from lib.database.models.Organizations import Organizations, OrganizationsKeys
+# from lib.MasonHTMLElements import MasonHTMLElements
+# from lib.SeleniumBrowser.lib.SeleniumBrowser import SeleniumBrowser
+# from lib.SeleniumBrowser.lib.XPathLookupProps import XPathLookupProps
+# from lib.database.models.BaseModel import BaseModel
+# from lib.database.models.RegionalLinks import RegionalLinks
+# from lib.database.models.Organizations import Organizations
 
 # from lib.database.models.Posts import Posts, PostsKeys
 # from lib.database.models.Messages import Messages
 # from lib.database.models.Keywords import Keywords
-
-from lib.utils.lib.Jsons import Jsons as jsons
 
 # Process: Get links from Top level > Get page link from second level > Get info from third level
 
@@ -126,7 +121,7 @@ class MasonicParser(object):
 
         # self.parse_region_pages()
 
-        # self.parse_organization_pages()
+        self.parse_organization_pages()
 
         header_convert: Callable[[str], str] = lambda x: x.replace('Org', 'Organization')
         output: List[List[str]] = self.convert_database_for_output(Organizations, header_convert)
@@ -175,16 +170,13 @@ class MasonicParser(object):
         """
         # Get HTML elements for region pages and set up Organizations object for uploading objects
         elements = self.search_elements.regional_elements
-        orgs = Organizations()
 
         # Set up upload array, upload_count, and get regional links already downloaded and saved to database
         # Loop through each regional link, go to url, and parse out individual organization links
         # uploads: List[Organizations] = []
         upload_count = 0
         upload_step = 1
-        # Check number 50
-        temp_start = 156
-        regional_links: List[RegionalLinks] = RegionalLinks.select().offset(temp_start)
+        regional_links: List[RegionalLinks] = RegionalLinks.select()
         for idx in range(len(regional_links)):
             # Get regional link from db, go to url, parse orgs, add to uploads array
             # Upload to db every 100 uploads and restart browser every 500
@@ -242,8 +234,9 @@ class MasonicParser(object):
         # Get HTML elements and organization links from Organizations database
         elements = self.search_elements.organization_elements
         upload_count = 1
+        # TODO: Remove select wherearsd
         org_links: List[Organizations] = Organizations.select(OG.national_org, OG.regional_org, OG.regional_link,
-                                                              OG.name, OG.page_link)
+                                                              OG.name, OG.page_link).where(OG.latitude == None)
         for idx in range(len(org_links)):
             org = org_links[idx]
             # Get url and create load check for browser
@@ -329,7 +322,10 @@ class MasonicParser(object):
         address = '\n'.join(address_parse)
 
         # Parse out meeting schedule - easy
-        meeting_schedule: str = html_tree.find_element_by_xpath(elements.meeting_schedule).text
+        meeting_schedule: str = None
+        check_meeting_schedule = XPathLookupProps(By.XPATH, elements.meeting_schedule, delay=10)
+        if self.browser.check_presence_of_element(check_meeting_schedule):
+            meeting_schedule: str = html_tree.find_element_by_xpath(elements.meeting_schedule).text
 
         # Parse out contact info - contact, phone, website, and email found here
         contact_info_element: WebElement = html_tree.find_element_by_xpath(elements.contact_info)
@@ -356,7 +352,7 @@ class MasonicParser(object):
 
         # Finally, update model attributes
         model.name = name
-        model.number = number
+        model.number = number if number != '' else -1
         model.address = address
         model.founded_date = founded
 
@@ -407,7 +403,6 @@ class MasonicParser(object):
         # Each element = new Organization to upload to database
         org_uploads: List[Organizations] = []
         upload_count = 0
-        upload_step = 1
         orgs = html_tree.find_elements_by_xpath(elements.organization_links)
         for idx in range(len(orgs)):
             org = orgs[idx]
@@ -539,10 +534,11 @@ class MasonicParser(object):
     def convert_database_for_output(db: BaseModel, header_edit: Callable[[str], str] = None):
         OG = Organizations
 
+        # noinspection PyProtectedMember
         keys: List[str] = db._meta.sorted_field_names
         # noinspection PyComparisonWithNone
-        rows: List[BaseModel] = db.select().where(OG.latitude != None).limit(500) \
-            .order_by(OG.national_org.asc(), OG.regional_org.asc(), OG.name.asc(), OG.number.asc())
+        rows: List[BaseModel] = db.select().order_by(OG.national_org.asc(), OG.regional_org.asc(), OG.name.asc(),
+                                                     OG.number.asc())
 
         remove_keys = ['created_at', 'id']
         for key in remove_keys:
@@ -550,6 +546,7 @@ class MasonicParser(object):
 
         convert_header: Callable[[str], str] = lambda x: x.replace('_', ' ').title()
         new_keys: List[str] = [convert_header(x) for x in keys]
+
         new_rows: List[dict] = [x.to_dict() for x in rows]
 
         if header_edit is not None:

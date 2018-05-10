@@ -1,43 +1,34 @@
-import os.path
-import sys
-from .RegionalLinks import RegionalLinks, RegionalLinksKeys
-from .BaseModel import BaseModel
 from peewee import *
-from typing import Sequence
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-dir_path = os.path.abspath(os.path.join(dir_path, '../../..'))
-
-sys.path.append(dir_path)
-
-# noinspection PyPep8Naming
-from lib.utils.lib.Jsons import Jsons as jsons
+from .BaseModel import BaseModel
+from .RegionalLinks import RegionalLinks
 
 
-class OrganizationsKeys(RegionalLinksKeys):
-    page_link = 'page_link'
-    name = 'name'
-    number = 'number'
-    address = 'address'
-    founded_date = 'founded_date'
-    meeting_schedule = 'meeting_schedule'
-    contact = 'contact'
-    phone = 'phone'
-    website = 'website'
-    email = 'email'
-    latitude = 'latitude'
-    longitude = 'longitude'
+class OrganizationsKeys:
+    created_at: str = 'created_at'
 
-    keys = [RegionalLinksKeys.national_org, RegionalLinksKeys.regional_org, RegionalLinksKeys.regional_link, page_link,
-            name, number, address, founded_date, meeting_schedule, contact, phone, website, email, latitude, longitude,
-            RegionalLinksKeys.created_at]
+    national_org: str = 'national_org'
+    regional_org: str = 'regional_org'
+    regional_link: str = 'regional_link'
+    page_link: str = 'page_link'
+    name: str = 'name'
+    number: str = 'number'
+    address: str = 'address'
+    founded_date: str = 'founded_date'
+    meeting_schedule: str = 'meeting_schedule'
+    contact: str = 'contact'
+    phone: str = 'phone'
+    website: str = 'website'
+    email: str = 'email'
+    latitude: str = 'latitude'
+    longitude: str = 'longitude'
 
 
-OK = OrganizationsKeys()
+Keys = OrganizationsKeys
 
 
 class Organizations(BaseModel):
-    global OK
+    global Keys
 
     national_org = CharField(max_length=1000)
     regional_org = CharField(max_length=1000)
@@ -48,7 +39,7 @@ class Organizations(BaseModel):
     #
     # national_org = ForeignKeyField(RegionalLinks, to_field=OK.national_org)
     # regional_org = ForeignKeyField(RegionalLinks, to_field=OK.regional_org)
-    regional_link = ForeignKeyField(RegionalLinks, to_field=OK.regional_link)
+    regional_link = ForeignKeyField(RegionalLinks, to_field=Keys.regional_link)
 
     page_link = CharField(max_length=1000, unique=True)
     name = CharField(max_length=1000)
@@ -65,105 +56,69 @@ class Organizations(BaseModel):
 
     @staticmethod
     def initialize(params: dict) -> 'Organizations':
-        org = Organizations()
+        model = Organizations()
 
-        if OK.national_org in params:
-            org.national_org = params[OK.national_org]
+        if Keys.created_at in params:
+            model.created_at = params[Keys.created_at]
 
-        if OK.regional_org in params:
-            org.regional_org = params[OK.regional_org]
+        if Keys.national_org in params:
+            model.national_org = params[Keys.national_org]
 
-        if OK.regional_link in params:
-            org.regional_link = params[OK.regional_link]
+        if Keys.regional_org in params:
+            model.regional_org = params[Keys.regional_org]
 
-        if OK.name in params:
-            org.name = params[OK.name]
+        if Keys.regional_link in params:
+            model.regional_link = params[Keys.regional_link]
 
-        if OK.number in params:
-            org.number = params[OK.number]
+        if Keys.page_link in params:
+            model.page_link = params[Keys.page_link]
 
-        if OK.address in params:
-            org.address = params[OK.address]
+        if Keys.name in params:
+            model.name = params[Keys.name]
 
-        if OK.founded_date in params:
-            org.founded_date = params[OK.founded_date]
+        if Keys.number in params:
+            model.number = params[Keys.number]
 
-        if OK.meeting_schedule in params:
-            org.meeting_schedule = params[OK.meeting_schedule]
+        if Keys.address in params:
+            model.address = params[Keys.address]
 
-        if OK.contact in params:
-            org.contact = params[OK.contact]
+        if Keys.founded_date in params:
+            model.founded_date = params[Keys.founded_date]
 
-        if OK.phone in params:
-            org.phone = params[OK.phone]
+        if Keys.meeting_schedule in params:
+            model.meeting_schedule = params[Keys.meeting_schedule]
 
-        if OK.website in params:
-            org.website = params[OK.website]
+        if Keys.contact in params:
+            model.contact = params[Keys.contact]
 
-        if OK.email in params:
-            org.email = params[OK.email]
+        if Keys.phone in params:
+            model.phone = params[Keys.phone]
 
-        if OK.latitude in params:
-            org.latitude = params[OK.latitude]
+        if Keys.website in params:
+            model.website = params[Keys.website]
 
-        if OK.longitude in params:
-            org.longitude = params[OK.longitude]
+        if Keys.email in params:
+            model.email = params[Keys.email]
 
-        if OK.created_at in params:
-            org.created_at = params[OK.created_at]
+        if Keys.latitude in params:
+            model.latitude = params[Keys.latitude]
 
-        return org
+        if Keys.longitude in params:
+            model.longitude = params[Keys.longitude]
 
-    def __str__(self):
-        return str(jsons.create_dict(OrganizationsKeys.keys, self.values()))
-
-    def __repr__(self):
-        return str(jsons.create_dict(OrganizationsKeys.keys, self.values()))
+        return model
 
     def values(self):
-        # Test ForeignKeyFields first
-
-        try:
-            national_org = self.national_org
-        except DoesNotExist:
-            national_org = None
-
-        try:
-            regional_org = self.regional_org
-        except DoesNotExist:
-            regional_org = None
-
         try:
             regional_link = self.regional_link.regional_link
         except DoesNotExist:
             regional_link = None
 
-        return [national_org, regional_org, regional_link, self.page_link, self.name, self.number, self.address,
-                self.founded_date, self.meeting_schedule, self.contact, self.phone, self.website, self.email,
-                self.latitude, self.longitude, self.created_at]
-
-    def to_dict(self):
-        output = dict()
-
-        keys = OK.keys
-        values = self.values()
-
-        if len(keys) != len(values):
-            raise IndexError('The length of keys and values were not equal for Organizations class. '
-                             'This needs to be fixed internally')
-
-        for idx in range(len(values)):
-            value = values[idx]
-            if value is not None:
-                output[keys[idx]] = value
-
-        return output
-
-    def upload_many(self, upload: Sequence['Organizations']):
-        if len(upload) > 0:
-            self.insert_many([x.to_dict() for x in upload]).on_conflict('replace').execute()
+        return [self.created_at, self.national_org, self.regional_org, regional_link, self.page_link,
+                self.name, self.number, self.address, self.founded_date, self.meeting_schedule, self.contact,
+                self.phone, self.website, self.email, self.latitude, self.longitude]
 
     class Meta:
-        indexes = (((OK.created_at,), False),)
+        indexes = (((Keys.created_at,), False),)
 
-        primary_key = CompositeKey(OK.national_org, OK.regional_org, OK.name, OK.number)
+        primary_key = CompositeKey(Keys.national_org, Keys.regional_org, Keys.name, Keys.number)
